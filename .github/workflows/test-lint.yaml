@@ -1,0 +1,79 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - '**' # This makes the workflow only runs by push to branch, not pushed git tag
+    paths-ignore:
+      - '.devbots/**'
+      - '.husky/**'
+      - '.vscode/**'
+      - .editorconfig
+      - commitlint.config.js
+      - license
+      - docs/urls.json
+  pull_request:
+    paths-ignore:
+      - '.devbots/**'
+      - '.husky/**'
+      - '.vscode/**'
+      - .editorconfig
+      - commitlint.config.js
+      - license
+      - docs/urls.json
+
+jobs:
+  # [original source of job "check-if-to-skip"](https://github.com/srz-zumix/ci-skip/blob/master/.github/workflows/main.yml#L15)
+  skip:
+    runs-on: ubuntu-latest
+    # skip commits with [ci skip] or [skip ci], except on an action triggered by push of a version tag
+    if: "!( contains(github.event.head_commit.message, '[ci skip]') || contains(github.event.head_commit.message, '[skip ci]') )"
+    steps:
+      - name: Check [ci skip] or [skip ci]
+        run: exit 0
+
+  test:
+    needs: skip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 7.5.1
+          run_install: false # For cache
+
+      - name: Read .nvmrc
+        id: nvmrc
+        run: echo "::set-output name=nvmrc::$(cat .nvmrc)"
+
+      # pnpm should be installed before the setup-node action. REF: https://github.com/actions/setup-node/issues/530
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ steps.nvmrc.outputs.nvmrc }}
+          cache: pnpm
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "::set-output name=pnpm_cache_dir::$(pnpm store path)"
+
+      - name: Set up pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test And Measure Coverage
+        run: pnpm jest --coverage --ci
+
+      - name: Lint
+        run: pnpm lint .

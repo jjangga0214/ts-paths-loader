@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "node <source>",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${fileDirname}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["${input:filepath}"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "pnpm ts <file>",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${fileDirname}",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["ts", "${input:filepath}"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "pnpm test --testNamePattern <pattern>",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${fileDirname}",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "test",
+        "--testNamePattern",
+        "${input:--testNamePattern}"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "filepath",
+      "type": "promptString",
+      "description": "What is the file path relative from cwd?"
+    },
+    {
+      "id": "--testNamePattern",
+      "type": "promptString",
+      "description": "What is the argument for `--testNamePattern` option?"
+    }
+  ]
+}
